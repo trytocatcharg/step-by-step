@@ -3,10 +3,13 @@ import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Svg, {
   Circle,
   Defs,
+  G,
   Line,
   LinearGradient,
   Path,
+  Rect,
   Stop,
+  Text as SvgText,
 } from 'react-native-svg';
 
 import type { DaySteps } from '../services/steps';
@@ -17,12 +20,20 @@ interface WeekChartProps {
   days: DaySteps[];
   /** Daily step goal; drawn as the dotted reference line. */
   goal: number;
+  /** Index of the selected day (0 = oldest). Controlled by the parent. */
+  selectedIndex: number;
+  onSelect: (index: number) => void;
 }
 
-const CHART_HEIGHT = 110;
-const PAD_TOP = 16;
+const CHART_HEIGHT = 130;
+const PAD_TOP = 26;
 const PAD_BOTTOM = 6;
-const PAD_X = 10;
+const PAD_X = 14;
+const TOOLTIP_HEIGHT = 26;
+const TOOLTIP_GAP = 8;
+const HIT_RADIUS = 22;
+
+const formatSteps = new Intl.NumberFormat('en-US');
 
 interface Point {
   x: number;
@@ -54,7 +65,12 @@ function weekdayLabel(dateKey: string): string {
   });
 }
 
-export function WeekChart({ days, goal }: WeekChartProps) {
+export function WeekChart({
+  days,
+  goal,
+  selectedIndex,
+  onSelect,
+}: WeekChartProps) {
   const [width, setWidth] = useState(0);
 
   const onLayout = (event: LayoutChangeEvent) => {
@@ -82,13 +98,34 @@ export function WeekChart({ days, goal }: WeekChartProps) {
       : '';
   const goalY = goal > 0 ? yFor(goal) : null;
 
+  const selected =
+    selectedIndex >= 0 && selectedIndex < points.length
+      ? points[selectedIndex]
+      : undefined;
+  const selectedSteps = days[selectedIndex]?.steps ?? 0;
+  const tooltipText = `${formatSteps.format(selectedSteps)} steps`;
+  const tooltipWidth = tooltipText.length * 6.8 + 16;
+  const tooltipX = selected
+    ? Math.min(
+        Math.max(selected.x, PAD_X + tooltipWidth / 2),
+        width - PAD_X - tooltipWidth / 2
+      ) - tooltipWidth / 2
+    : 0;
+  const tooltipY = selected
+    ? Math.max(selected.y - TOOLTIP_GAP - TOOLTIP_HEIGHT, 0)
+    : 0;
+
   return (
     <View style={styles.card} onLayout={onLayout}>
       <View style={styles.labels}>
         {labels.map((label, i) => (
           <Text
             key={`${label}-${i}`}
-            style={[styles.label, i === labels.length - 1 && styles.labelToday]}
+            style={[
+              styles.label,
+              i === labels.length - 1 && styles.labelToday,
+              i === selectedIndex && styles.labelSelected,
+            ]}
           >
             {label}
           </Text>
@@ -125,19 +162,49 @@ export function WeekChart({ days, goal }: WeekChartProps) {
               strokeLinecap="round"
             />
           )}
-          {points.map((p, i) => (
-            <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill={colors.text} />
-          ))}
-          {points.length > 0 && (
-            <Circle
-              cx={points[points.length - 1].x}
-              cy={points[points.length - 1].y}
-              r={7}
-              fill="none"
-              stroke={colors.text}
-              strokeWidth={2}
-            />
+          {selected && (
+            <G>
+              <Rect
+                x={tooltipX}
+                y={tooltipY}
+                width={tooltipWidth}
+                height={TOOLTIP_HEIGHT}
+                rx={radius.sm}
+                fill={colors.surfaceLight}
+                stroke={colors.border}
+              />
+              <SvgText
+                x={tooltipX + tooltipWidth / 2}
+                y={tooltipY + TOOLTIP_HEIGHT / 2 + 4}
+                fill={colors.text}
+                fontSize={13}
+                fontWeight="700"
+                textAnchor="middle"
+              >
+                {tooltipText}
+              </SvgText>
+              <Circle
+                cx={selected.x}
+                cy={selected.y}
+                r={8}
+                fill="none"
+                stroke={colors.accent}
+                strokeWidth={2}
+              />
+            </G>
           )}
+          {points.map((p, i) => (
+            <G key={i} onPress={() => onSelect(i)}>
+              {/* Generous invisible hit area around each dot. */}
+              <Circle cx={p.x} cy={p.y} r={HIT_RADIUS} fill="transparent" />
+              <Circle
+                cx={p.x}
+                cy={p.y}
+                r={i === selectedIndex ? 5 : 3.5}
+                fill={colors.text}
+              />
+            </G>
+          ))}
         </Svg>
       )}
     </View>
@@ -165,5 +232,8 @@ const styles = StyleSheet.create({
   },
   labelToday: {
     color: colors.text,
+  },
+  labelSelected: {
+    color: colors.accent,
   },
 });

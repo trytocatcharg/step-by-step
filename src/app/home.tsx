@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const { steps, status } = useTodaySteps();
   const { days: weekDays } = useWeekSteps();
+  const [selectedDayIndex, setSelectedDayIndex] = useState(6);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -37,8 +38,18 @@ export default function HomeScreen() {
   }
 
   const goal = profile.dailyGoal;
-  const progress = goal > 0 ? steps / goal : 0;
-  const goalReached = progress >= 1;
+  // The donut mirrors the selected chart day; only "today" is live.
+  const isTodaySelected = selectedDayIndex >= weekDays.length - 1;
+  const selectedDay = weekDays[selectedDayIndex];
+  const displaySteps = isTodaySelected ? steps : (selectedDay?.steps ?? 0);
+  const dayLabel = isTodaySelected
+    ? 'Today'
+    : selectedDay
+      ? new Date(`${selectedDay.date}T12:00:00`).toLocaleDateString('en-US', {
+          weekday: 'long',
+        })
+      : 'Today';
+  const progress = goal > 0 ? displaySteps / goal : 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -53,15 +64,20 @@ export default function HomeScreen() {
       <View style={styles.donutWrap}>
         <DonutChart progress={progress} />
         <View style={styles.donutCenter} pointerEvents="none">
-          <Text style={styles.todayLabel}>Today</Text>
-          <Text style={styles.stepsValue}>{formatSteps.format(steps)}</Text>
+          <Text style={styles.todayLabel}>{dayLabel}</Text>
+          <Text style={styles.stepsValue}>{formatSteps.format(displaySteps)}</Text>
           <Text style={styles.goalLabel}>of {formatSteps.format(goal)} steps</Text>
-          {goalReached && <Text style={styles.goalReached}>✓ Goal reached</Text>}
+          {progress >= 1 && <Text style={styles.goalReached}>✓ Goal reached</Text>}
         </View>
       </View>
 
       <View style={styles.weekChart}>
-        <WeekChart days={weekDays} goal={goal} />
+        <WeekChart
+          days={weekDays}
+          goal={goal}
+          selectedIndex={selectedDayIndex}
+          onSelect={setSelectedDayIndex}
+        />
       </View>
 
       <View style={styles.footer}>
