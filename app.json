@@ -1,26 +1,29 @@
 {
   "expo": {
-    "name": "tropicbird",
-    "slug": "tropicbird",
+    "name": "Just Steps",
+    "slug": "just-steps",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "tropicbird",
+    "scheme": "juststeps",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tropicbird.app"
+      "bundleIdentifier": "com.juststeps.app"
     },
     "android": {
-      "package": "com.tropicbird.app",
+      "package": "com.juststeps.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#7EC277",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.health.READ_STEPS"]
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.ACTIVITY_RECOGNITION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,7 +35,7 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "tropicbird reads your step count to show your daily progress."
+          "NSHealthShareUsageDescription": "Just Steps reads your step count to show your daily progress."
         }
       ],
       [
@@ -43,6 +46,13 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e773179a-dc95-4e46-8a69-462cabfe9ad2"
+      }
+    },
+    "owner": "defiesguita"
   }
 }

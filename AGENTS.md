@@ -8,17 +8,20 @@ Expo ships breaking changes every SDK release. APIs you remember are likely rena
 2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
 3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
 
-## Commands
+## Package manager
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+This project uses **Yarn (classic, v1)** exclusively. Never use npm, pnpm, or bun — the `package-lock.json` was removed in favor of `yarn.lock`. All dependency versions in `package.json` are pinned exactly (no `^`/`~` prefixes), and `save-exact` is enabled via `.yarnrc`/`.npmrc` so future installs stay pinned. Do not reintroduce ranges when adding packages. Note: `expo install` ignores `save-exact` and writes ranges — after using it, check `package.json` and pin the actually installed version exactly (check `yarn.lock`).
+
+Node version: **22.x** (required by metro; `.nvmrc` is set). Run `nvm use` before installing if your default isn't Node 22.
 
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+yarn install                 # install dependencies
+yarn expo install <package>  # ALWAYS use instead of npm/yarn add — resolves SDK-compatible versions
+yarn start                   # start the dev server
+yarn expo lint               # lint
+yarn tsc --noEmit            # typecheck
+yarn expo-doctor             # diagnose dependency and config issues
+yarn expo install --fix      # fix incompatible package versions
 ```
 
 Run lint and typecheck before declaring any task done.

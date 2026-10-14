@@ -34,6 +34,45 @@ const formatDate = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 });
 
+const toDateInputValue = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`;
+
+const parseDateInputValue = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// @react-native-community/datetimepicker has no web implementation (ios/android
+// only), so on web we render a native HTML date input inside the same modal.
+let WebDateInput: React.ComponentType<{
+  value: string;
+  max: string;
+  onChange: (value: string) => void;
+}> | null = null;
+
+if (Platform.OS === 'web') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- conditional web-only import; a static import would pull react-native-web into native bundles
+  const { unstable_createElement } = require('react-native-web');
+  WebDateInput = ({ value, max, onChange }) =>
+    unstable_createElement('input', {
+      type: 'date',
+      value,
+      max,
+      onChange: (event: { target: { value: string } }) =>
+        onChange(event.target.value),
+      style: {
+        color: colors.text,
+        backgroundColor: colors.surfaceLight,
+        fontSize: 16,
+        padding: 12,
+        borderRadius: radius.md,
+        border: `1px solid ${colors.border}`,
+      },
+    });
+}
+
 function validate(form: FormState, goal: number): Errors {
   const errors: Errors = {};
 
@@ -92,7 +131,16 @@ export default function OnboardingScreen() {
   }, [form.birthDate, form.heightCm, form.weightKg]);
 
   const [goal, setGoal] = useState(8000);
-  const effectiveGoal = suggestedGoal ?? goal;
+  const [goalTouched, setGoalTouched] = useState(false);
+
+  // Follow the suggestion until the user picks a goal themselves; from then
+  // on their choice wins, even if the suggestion changes afterwards.
+  const effectiveGoal = goalTouched ? goal : (suggestedGoal ?? goal);
+
+  const handleGoalChange = (value: number) => {
+    setGoalTouched(true);
+    setGoal(value);
+  };
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -204,7 +252,7 @@ export default function OnboardingScreen() {
             <Text style={styles.label}>Daily step goal</Text>
             <GoalPicker
               value={effectiveGoal}
-              onChange={setGoal}
+              onChange={handleGoalChange}
               suggested={suggestedGoal}
             />
             {errors.goal && <Text style={styles.error}>{errors.goal}</Text>}
@@ -225,15 +273,25 @@ export default function OnboardingScreen() {
       <Modal visible={pickerVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <DateTimePicker
-              value={pickerValue}
-              onChange={(_event, date) => {
-                if (date) setPickerValue(date);
-              }}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={new Date()}
-            />
+            {Platform.OS === 'web' && WebDateInput ? (
+              <WebDateInput
+                value={toDateInputValue(pickerValue)}
+                max={toDateInputValue(new Date())}
+                onChange={(value) => {
+                  if (value) setPickerValue(parseDateInputValue(value));
+                }}
+              />
+            ) : (
+              <DateTimePicker
+                value={pickerValue}
+                onChange={(_event, date) => {
+                  if (date) setPickerValue(date);
+                }}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={new Date()}
+              />
+            )}
             <View style={styles.modalActions}>
               <Pressable
                 style={styles.modalButton}
@@ -288,6 +346,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 14,
     justifyContent: 'center',
+    color: colors.text,
   },
   inputText: { color: colors.text, fontSize: 16 },
   inputPlaceholder: { color: colors.textMuted, fontSize: 16 },

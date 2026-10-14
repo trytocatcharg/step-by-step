@@ -1,4 +1,4 @@
-# tropicbird
+# Just Steps
 
 App de contador de pasos hecha con React Native (Expo). Android es la plataforma principal; iOS es compatible a través de HealthKit.
 

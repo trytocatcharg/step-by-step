@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Profile } from '../types';
 
-const PROFILE_KEY = '@tropicbird/profile';
+const PROFILE_KEY = '@juststeps/profile';
 
 function isValidProfile(value: unknown): value is Profile {
   if (typeof value !== 'object' || value === null) return false;

@@ -6,7 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DonutChart } from '../components/DonutChart';
 import { ProfileBadge } from '../components/ProfileBadge';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { WeekChart } from '../components/WeekChart';
 import { useTodaySteps } from '../hooks/useTodaySteps';
+import { useWeekSteps } from '../hooks/useWeekSteps';
 import { loadProfile } from '../storage/profileStorage';
 import { colors, spacing } from '../theme';
 import type { Profile } from '../types';
@@ -16,6 +18,7 @@ const formatSteps = new Intl.NumberFormat('en-US');
 export default function HomeScreen() {
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const { steps, status } = useTodaySteps();
+  const { days: weekDays } = useWeekSteps();
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -55,6 +58,10 @@ export default function HomeScreen() {
           <Text style={styles.goalLabel}>of {formatSteps.format(goal)} steps</Text>
           {goalReached && <Text style={styles.goalReached}>✓ Goal reached</Text>}
         </View>
+      </View>
+
+      <View style={styles.weekChart}>
+        <WeekChart days={weekDays} goal={goal} />
       </View>
 
       <View style={styles.footer}>
@@ -136,6 +143,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
     paddingBottom: spacing.md,
+  },
+  weekChart: {
+    marginBottom: spacing.md,
   },
   footerText: {
     color: colors.textMuted,

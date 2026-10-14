@@ -14,23 +14,29 @@ interface GoalPickerProps {
 }
 
 export function GoalPicker({ value, onChange, suggested }: GoalPickerProps) {
-  const [customText, setCustomText] = useState(
-    PRESETS.includes(value) ? '' : String(value)
-  );
-  const customActive = !PRESETS.includes(value);
+  // Text the user is currently typing; null when the field is not being
+  // edited, so the input reflects the value (including external changes
+  // like an applied suggestion) instead of a stale draft.
+  const [draft, setDraft] = useState<string | null>(null);
+  const customActive = draft !== null || !PRESETS.includes(value);
 
   const selectPreset = (preset: number) => {
     onChange(preset);
-    setCustomText('');
+    setDraft(null);
   };
 
   const selectCustom = () => {
-    const parsed = parseInt(customText, 10);
+    if (draft === null) {
+      // First press: open the custom field with the current value.
+      setDraft(String(value));
+      return;
+    }
+    const parsed = parseInt(draft, 10);
+    setDraft(null);
     if (!Number.isNaN(parsed) && parsed > 0) {
       onChange(parsed);
     } else {
       onChange(8000);
-      setCustomText('8000');
     }
   };
 
@@ -68,10 +74,10 @@ export function GoalPicker({ value, onChange, suggested }: GoalPickerProps) {
       {customActive && (
         <TextInput
           style={styles.customInput}
-          value={customText}
+          value={draft ?? String(value)}
           onChangeText={(text) => {
             const digits = text.replace(/[^0-9]/g, '');
-            setCustomText(digits);
+            setDraft(digits);
             const parsed = parseInt(digits, 10);
             if (!Number.isNaN(parsed) && parsed > 0) onChange(parsed);
           }}
@@ -79,7 +85,15 @@ export function GoalPicker({ value, onChange, suggested }: GoalPickerProps) {
           placeholderTextColor={colors.textMuted}
           keyboardType="number-pad"
           returnKeyType="done"
-          onBlur={selectCustom}
+          onBlur={() => {
+            const parsed = parseInt(draft ?? '', 10);
+            setDraft(null);
+            if (!Number.isNaN(parsed) && parsed > 0) {
+              onChange(parsed);
+            } else {
+              onChange(8000);
+            }
+          }}
         />
       )}
     </View>
