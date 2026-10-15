@@ -20,9 +20,9 @@ interface WeekChartProps {
   days: DaySteps[];
   /** Daily step goal; drawn as the dotted reference line. */
   goal: number;
-  /** Index of the selected day (0 = oldest). Controlled by the parent. */
-  selectedIndex: number;
-  onSelect: (index: number) => void;
+  /** Index of the selected day (0 = oldest), or null for no selection. */
+  selectedIndex: number | null;
+  onSelect: (index: number | null) => void;
 }
 
 const CHART_HEIGHT = 130;
@@ -99,10 +99,13 @@ export function WeekChart({
   const goalY = goal > 0 ? yFor(goal) : null;
 
   const selected =
-    selectedIndex >= 0 && selectedIndex < points.length
+    selectedIndex !== null &&
+    selectedIndex >= 0 &&
+    selectedIndex < points.length
       ? points[selectedIndex]
       : undefined;
-  const selectedSteps = days[selectedIndex]?.steps ?? 0;
+  const selectedSteps =
+    selectedIndex !== null ? (days[selectedIndex]?.steps ?? 0) : 0;
   const tooltipText = `${formatSteps.format(selectedSteps)} steps`;
   const tooltipWidth = tooltipText.length * 6.8 + 16;
   const tooltipX = selected
@@ -133,6 +136,15 @@ export function WeekChart({
       </View>
       {width > 0 && (
         <Svg width={width} height={CHART_HEIGHT}>
+          {/* Tapping the plot area outside a day dot clears the selection. */}
+          <Rect
+            x={0}
+            y={0}
+            width={width}
+            height={CHART_HEIGHT}
+            fill="transparent"
+            onPress={() => onSelect(null)}
+          />
           <Defs>
             <LinearGradient id="weekFill" x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={colors.accent} stopOpacity="0.35" />
@@ -164,25 +176,6 @@ export function WeekChart({
           )}
           {selected && (
             <G>
-              <Rect
-                x={tooltipX}
-                y={tooltipY}
-                width={tooltipWidth}
-                height={TOOLTIP_HEIGHT}
-                rx={radius.sm}
-                fill={colors.surfaceLight}
-                stroke={colors.border}
-              />
-              <SvgText
-                x={tooltipX + tooltipWidth / 2}
-                y={tooltipY + TOOLTIP_HEIGHT / 2 + 4}
-                fill={colors.text}
-                fontSize={13}
-                fontWeight="700"
-                textAnchor="middle"
-              >
-                {tooltipText}
-              </SvgText>
               <Circle
                 cx={selected.x}
                 cy={selected.y}
