@@ -28,6 +28,13 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e773179a-dc95-4e46-8a69-462cabfe9ad2",
+      "checkAutomatically": "ON_ERROR_RECOVERY"
+    },
     "plugins": [
       "expo-router",
       "@react-native-community/datetimepicker",

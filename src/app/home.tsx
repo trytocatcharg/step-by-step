@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DonutChart } from '../components/DonutChart';
 import { ProfileBadge } from '../components/ProfileBadge';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { UpdateBanner } from '../components/UpdateBanner';
 import { WeekChart } from '../components/WeekChart';
 import { useTodaySteps } from '../hooks/useTodaySteps';
 import { useWeekSteps } from '../hooks/useWeekSteps';
@@ -19,7 +20,9 @@ export default function HomeScreen() {
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const { steps, status } = useTodaySteps();
   const { days: weekDays } = useWeekSteps();
-  const [selectedDayIndex, setSelectedDayIndex] = useState(6);
+  // Today is the last entry in the week (oldest first).
+  const todayIndex = weekDays.length - 1;
+  const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -39,7 +42,7 @@ export default function HomeScreen() {
 
   const goal = profile.dailyGoal;
   // The donut mirrors the selected chart day; only "today" is live.
-  const isTodaySelected = selectedDayIndex >= weekDays.length - 1;
+  const isTodaySelected = selectedDayIndex >= todayIndex;
   const selectedDay = weekDays[selectedDayIndex];
   const displaySteps = isTodaySelected ? steps : (selectedDay?.steps ?? 0);
   const dayLabel = isTodaySelected
@@ -50,6 +53,9 @@ export default function HomeScreen() {
         })
       : 'Today';
   const progress = goal > 0 ? displaySteps / goal : 0;
+  const weeklyAverage = weekDays.length
+    ? Math.round(weekDays.reduce((sum, day) => sum + day.steps, 0) / weekDays.length)
+    : 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -61,6 +67,8 @@ export default function HomeScreen() {
         <View style={styles.topBarSpacer} />
       </View>
 
+      <UpdateBanner />
+
       <View style={styles.donutWrap}>
         <DonutChart progress={progress} />
         <View style={styles.donutCenter} pointerEvents="none">
@@ -71,12 +79,16 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      <Text style={styles.weeklyAverage}>
+        7-day average: {formatSteps.format(weeklyAverage)} steps
+      </Text>
+
       <View style={styles.weekChart}>
         <WeekChart
           days={weekDays}
           goal={goal}
           selectedIndex={selectedDayIndex}
-          onSelect={setSelectedDayIndex}
+          onSelect={(index) => setSelectedDayIndex(index ?? todayIndex)}
         />
       </View>
 
@@ -161,6 +173,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   weekChart: {
+    marginBottom: spacing.md,
+  },
+  weeklyAverage: {
+    color: colors.textMuted,
+    fontSize: 15,
+    textAlign: 'center',
     marginBottom: spacing.md,
   },
   footerText: {

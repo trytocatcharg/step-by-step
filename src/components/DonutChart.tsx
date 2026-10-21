@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -22,7 +22,7 @@ export function DonutChart({
   color = colors.accent,
   trackColor = colors.track,
 }: DonutChartProps) {
-  const animatedProgress = useRef(new Animated.Value(0)).current;
+  const [animatedProgress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const clamped = Math.min(Math.max(progress, 0), 1);
