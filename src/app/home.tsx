@@ -15,11 +15,13 @@ import { colors, spacing } from '../theme';
 import type { Profile } from '../types';
 
 const formatSteps = new Intl.NumberFormat('en-US');
+/** Complete days with fewer steps than this are excluded from the average. */
+const MIN_STEPS_FOR_AVERAGE = 100;
 
 export default function HomeScreen() {
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const { steps, status } = useTodaySteps();
-  const { days: weekDays } = useWeekSteps();
+  const { days: weekDays, completeDays } = useWeekSteps();
   // Today is the last entry in the week (oldest first).
   const todayIndex = weekDays.length - 1;
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex);
@@ -53,8 +55,12 @@ export default function HomeScreen() {
         })
       : 'Today';
   const progress = goal > 0 ? displaySteps / goal : 0;
-  const weeklyAverage = weekDays.length
-    ? Math.round(weekDays.reduce((sum, day) => sum + day.steps, 0) / weekDays.length)
+  // Today is still partial, so the average covers the last 7 complete days.
+  // Days with almost no steps (phone left behind, etc.) are not representative
+  // and are excluded.
+  const countedDays = completeDays.filter((day) => day.steps >= MIN_STEPS_FOR_AVERAGE);
+  const weeklyAverage = countedDays.length
+    ? Math.round(countedDays.reduce((sum, day) => sum + day.steps, 0) / countedDays.length)
     : 0;
 
   return (

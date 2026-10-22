@@ -13,12 +13,20 @@ import {
 
 const CACHE_KEY = '@juststeps/week_cache';
 const DAY_COUNT = 7;
+/**
+ * One extra day is fetched so the average can cover complete days only:
+ * the last entry is "today", whose steps are still partial during the day.
+ */
+const FETCH_COUNT = DAY_COUNT + 1;
 /** How far back the one-per-day backfill seeds the local history. */
 const BACKFILL_DAYS = 90;
 const REFRESH_MS = 5 * 60_000;
 
 export interface WeekStepsState {
+  /** Last DAY_COUNT days (today included), for the chart. */
   days: DaySteps[];
+  /** Last DAY_COUNT complete days (today excluded), for the average. */
+  completeDays: DaySteps[];
   status: StepsStatus;
   loading: boolean;
 }
@@ -26,7 +34,7 @@ export interface WeekStepsState {
 function lastWeekDays(): DaySteps[] {
   const days: DaySteps[] = [];
   const today = new Date();
-  for (let i = DAY_COUNT - 1; i >= 0; i--) {
+  for (let i = FETCH_COUNT - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     days.push({ date: dayKey(d), steps: 0 });
@@ -46,24 +54,34 @@ function isCurrentWeek(value: unknown, expected: string[]): value is DaySteps[] 
 }
 
 /**
- * Steps for the last 7 days, oldest first. Read from the health store and
- * cached in AsyncStorage so the chart renders instantly (and offline) from
- * the last successful read.
+ * Steps for the last 7 days plus today, oldest first. Read from the health
+ * store and cached in AsyncStorage so the chart renders instantly (and
+ * offline) from the last successful read. `days` holds the 7 chart days
+ * (today included); `completeDays` holds the 7 complete days before today.
  */
 export function useWeekSteps(): WeekStepsState {
-  const [state, setState] = useState<WeekStepsState>({
-    days: lastWeekDays(),
-    status: 'ok',
-    loading: true,
+  const [state, setState] = useState<WeekStepsState>(() => {
+    const raw = lastWeekDays();
+    return {
+      days: raw.slice(-DAY_COUNT),
+      completeDays: raw.slice(0, DAY_COUNT),
+      status: 'ok',
+      loading: true,
+    };
   });
 
   useEffect(() => {
     let cancelled = false;
 
+    const splitDays = (raw: DaySteps[]): Pick<WeekStepsState, 'days' | 'completeDays'> => ({
+      days: raw.slice(-DAY_COUNT),
+      completeDays: raw.slice(0, DAY_COUNT),
+    });
+
     const refresh = async () => {
-      const result = await getStepsForDays(DAY_COUNT);
+      const result = await getStepsForDays(FETCH_COUNT);
       if (cancelled) return;
-      setState({ days: result.days, status: result.status, loading: false });
+      setState({ ...splitDays(result.days), status: result.status, loading: false });
       if (result.status === 'ok') {
         AsyncStorage.setItem(
           CACHE_KEY,
@@ -99,7 +117,7 @@ export function useWeekSteps(): WeekStepsState {
         const parsed: unknown = JSON.parse(raw);
         const days = (parsed as { days?: unknown } | null)?.days;
         if (isCurrentWeek(days, expected)) {
-          setState((prev) => ({ ...prev, days: days as DaySteps[] }));
+          setState((prev) => ({ ...prev, ...splitDays(days as DaySteps[]) }));
         }
       })
       .catch(() => undefined);
